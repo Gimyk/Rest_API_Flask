@@ -6,17 +6,17 @@ api = Api(app)
 
 class HelloWorld(Resource):
     def get(self):
-        return {'Get': 'Wasup'}
+        return {'data': 'Hello'}
     
     def post(self):
         print(request)
         someJson = request.get_json()
-        return{'req that I sent': someJson}, 201
+        return{'data': someJson}, 201
 
 
 class Manupulate(Resource):
     def get(self, num):
-        return {'res': num*10}
+        return {'data': num*10}
 
 
 api.add_resource(HelloWorld, '/')
