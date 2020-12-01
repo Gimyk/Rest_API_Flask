@@ -4,7 +4,7 @@ from flask_cors import CORS
 from bson import ObjectId
 import json
 import jwt
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 app = Flask(__name__)
@@ -141,7 +141,7 @@ def login():
         if user:
             user['_id'] = str(user['_id'])
             if user and bcrypt.check_password_hash(user['password'], data['password']):
-                time = datetime.datetime.utcnow() + datetime.timedelta(hours=24)
+                time = datetime.utcnow() + timedelta(hours=24)
                 token = jwt.encode({
                         "user": {
                             "email": f"{user['email']}",
