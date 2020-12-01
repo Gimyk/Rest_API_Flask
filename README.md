@@ -1,11 +1,14 @@
 # Flask and flaskrestful examples
 
-> using mongodb
+Requirements:
+* mongodb
+* python3
 
-installation 
+The API uses **Mongodb** as the database and **JWT** for Authentication
+When creating a user, the password is hashed.
 
-> pip install -r requirements.txt
-
-
-to install flasskrestful
-> pip install flask-restful
+Installation and run
+```
+- pip install -r requirements.txt
+- pyhton3 run.py
+```
