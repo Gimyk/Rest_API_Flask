@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 from pymongo import MongoClient
-from flask_cors import CORS
+from flask_cors import CORS 
 from bson import ObjectId
 import json
 import jwt
@@ -8,13 +8,11 @@ from datetime import datetime, timedelta
 
 
 app = Flask(__name__)
-mongo = MongoClient('localhost', 27017)
-cors = CORS(app, resources={r"/*": {"origins": "*"}})
-
-app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 bcrypt = Bcrypt(app)
 secret = "***************"
+
+mongo = MongoClient('localhost', 27017)
 db = mongo['py_api'] #py_api is the name of the db
 
 def tokenReq(f):
