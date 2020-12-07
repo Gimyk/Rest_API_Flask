@@ -60,6 +60,7 @@ def index():
                 res.append(r)
             if res:
                 message = "todos retrieved"
+                status = 'successful'
                 code = 200
             else:
                 code = 500
