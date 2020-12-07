@@ -5,6 +5,8 @@ from bson import ObjectId
 import json
 import jwt
 from datetime import datetime, timedelta
+from flask_bcrypt import Bcrypt
+from functools import wraps
 
 
 app = Flask(__name__)
@@ -29,6 +31,9 @@ def tokenReq(f):
             return jsonify({"status": "fail", "message": "unauthorized"}), 401
     return decorated
 
+@app.route('/')
+def func():
+    return "😺", 200
 
 # get all and insert one
 @app.route('/todos', methods=['GET', 'POST'])
@@ -39,7 +44,7 @@ def index():
     message = ""
     try:
         if (request.method == 'POST'):
-            res = db.insert_one(request.get_json())
+            res = db['todos'].insert_one(request.get_json())
             if res.acknowledged:
                 message = "item saved"
                 status = 'successful'
@@ -50,7 +55,7 @@ def index():
                 res = 'fail'
                 code = 500
         else:
-            for r in db.find():
+            for r in db['todos'].find():
                 r['_id'] = str(r['_id'])
                 res.append(r)
             if res:
@@ -109,17 +114,17 @@ def save_user():
             message = "user with that email exists"
             code = 401
             status = "fail"
+        else:
+            # hashing the password so it's not stored in the db as it was 
+            data['password'] = bcrypt.generate_password_hash(data['password']).decode('utf-8')
+            data['created'] = datetime.now()
 
-        # hashing the password so it's not stored in the db as it was 
-        data['password'] = bcrypt.generate_password_hash(data['password']).decode('utf-8')
-        data['created'] = datetime.now()
-
-        #this is bad practice since the data is not being checked before insert
-        res = db["users"].insert_one(data) 
-        if res.acknowledged:
-            status = "successful"
-            message = "user created successfully"
-            code = 201
+            #this is bad practice since the data is not being checked before insert
+            res = db["users"].insert_one(data) 
+            if res.acknowledged:
+                status = "successful"
+                message = "user created successfully"
+                code = 201
     except Exception as ex:
         message = f"{ex}"
         status = "fail"
@@ -172,5 +177,5 @@ def login():
     return jsonify({'status': status, "data": data, "message":message}), code
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port='8080')
+    app.run(debug=True, host='0.0.0.0', port='8000')
 
