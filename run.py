@@ -63,7 +63,9 @@ def index():
                 status = 'successful'
                 code = 200
             else:
-                code = 500
+                message = "no todos found"
+                status = 'successful'
+                code = 200
     except Exception as ee:
         res = {"error": str(ee)}
     return jsonify({"status":status,'data': res, "message":message}), code
