@@ -137,7 +137,7 @@ def save_user():
 @app.route('/login', methods=['POST'])
 def login():
     message = ""
-    data = {}
+    res_data = {}
     code = 500
     status = "fail"
     try:
@@ -161,8 +161,8 @@ def login():
                 message = f"user authenticated"
                 code = 200
                 status = "successful"
-                data['token'] = token.decode('utf-8')
-                data['user'] = user
+                res_data['token'] = token.decode('utf-8')
+                res_data['user'] = user
 
             else:
                 message = "wrong password"
@@ -177,7 +177,7 @@ def login():
         message = f"{ex}"
         code = 500
         status = "fail"
-    return jsonify({'status': status, "data": data, "message":message}), code
+    return jsonify({'status': status, "data": res_data, "message":message}), code
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port='8000')
