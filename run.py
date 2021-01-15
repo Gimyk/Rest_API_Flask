@@ -49,13 +49,13 @@ def index():
                 message = "item saved"
                 status = 'successful'
                 code = 201
-                res = "ok"
+                res = {"_id": f"{res.inserted_id}"}
             else:
                 message = "insert error"
                 res = 'fail'
                 code = 500
         else:
-            for r in db['todos'].find():
+            for r in db['todos'].find().sort("_id", -1):
                 r['_id'] = str(r['_id'])
                 res.append(r)
             if res:
@@ -71,7 +71,37 @@ def index():
     return jsonify({"status":status,'data': res, "message":message}), code
 
 # get one and update one
-@app.route('/getone/<id>', methods=['GET', 'POST'])
+@app.route('/delete/<item_id>', methods=['DELETE'])
+@tokenReq
+def delete_one(item_id):
+    data = {}
+    code = 500
+    message = ""
+    status = "fail"
+    try:
+        if (request.method == 'DELETE'):
+            res = db['todos'].delete_one({"_id": ObjectId(item_id)})
+            if res:
+                message = "Delete successfully"
+                status = "successful"
+                code = 201
+            else:
+                message = "Delete failed"
+                status = "fail"
+                code = 404
+        else:
+            message = "Delete Method failed"
+            status = "fail"
+            code = 404
+           
+    except Exception as ee:
+        message =  str(ee)
+        status = "Error"
+
+    return jsonify({"status": status, "message":message,'data': data}), code
+
+# get one and update one
+@app.route('/getone/<item_id>', methods=['GET', 'POST'])
 @tokenReq
 def by_id(item_id):
     data = {}
@@ -80,17 +110,17 @@ def by_id(item_id):
     status = "fail"
     try:
         if (request.method == 'POST'):
-            res = db.update_one({"_id": ObjectId(item_id)}, { "$set": request.get_json()})
+            res = db['todos'].update_one({"_id": ObjectId(item_id)}, { "$set": request.get_json()})
             if res:
                 message = "updated successfully"
-                status = "ok"
+                status = "successful"
                 code = 201
             else:
                 message = "update failed"
                 status = "fail"
                 code = 404
         else:
-            data =  db.find_one({"_id": ObjectId(item_id)})
+            data =  db['todos'].find_one({"_id": ObjectId(item_id)})
             data['_id'] = str(data['_id'])
             if data:
                 message = "item found"
@@ -101,7 +131,8 @@ def by_id(item_id):
                 status = "fail"
                 code = 404
     except Exception as ee:
-        res = {"error": str(ee)}
+        message =  str(ee)
+        status = "Error"
 
     return jsonify({"status": status, "message":message,'data': data}), code
 
