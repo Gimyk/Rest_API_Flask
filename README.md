@@ -3,6 +3,7 @@
 Requirements:
 * mongodb
 * python3
+* pip3
 
 The API uses **Mongodb** as the database and **JWT** for Authentication
 When creating a user, the password is hashed.
