@@ -1,4 +1,4 @@
-# Flask and flaskrestful examples
+# Flask example
 
 Requirements:
 * mongodb
