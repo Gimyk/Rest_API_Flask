@@ -143,8 +143,8 @@ def save_user():
     status = "fail"
     try:
         data = request.get_json()
-        check = db['users'].find({"email": data['email']})
-        if check.count() >= 1:
+        count = db["users"].count_documents({"email": data["email"]})
+        if count >= 1:
             message = "user with that email exists"
             code = 401
             status = "fail"
