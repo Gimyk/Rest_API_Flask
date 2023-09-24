@@ -30,6 +30,7 @@
         }
     ]
 }
+Please note that using the simple RUN command will not launch gunicorn but werkzeug on port 5000
 """
 import os
 from datetime import datetime, timedelta
