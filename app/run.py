@@ -13,8 +13,24 @@
     As a demo it depends on an unprotected localhost:27017 mongodb
     The .env file sets needed environment variables
     The pyproject.toml file lists prerequisites to be installed by poetry 
+    
+    To work under gunicorn install it with pip3 but within the poetry shell enviroment
+    To check issue a 'which gunicorn' and you should see it's in the .venv
+    To run it under the VSCode debugger you need a launch.json such as:
+    {
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Flask",
+            "type": "python",
+            "request": "launch",
+            "program": "/Users/bob/code/Rest_API_Flask/.venv/bin/gunicorn",
+            "gevent": true,
+            "args": ["app.run:app", "--bind=127.0.0.1:8000", "--reload", "-w", "4"]
+        }
+    ]
+}
 """
-# TODO try switching to gunicorn
 import os
 from datetime import datetime, timedelta
 from functools import wraps
@@ -381,4 +397,5 @@ def protected_route():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port="8000")
+    # app.run(debug=True, host="0.0.0.0", port="8000")  # werkzeug for development
+    app.run()  # trying gunicorn -w 4 run:app (but does not find libraries)
