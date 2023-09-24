@@ -1,6 +1,6 @@
 """ tutorial on Flask API / JWT / MongoDB backend
     started from this: https://github.com/Gimyk/Rest_API_Flask
-    then slowly evolved to show:
+    then slowly fixed/evolved to show:
     tokenreq decorator function to secure routes
     signup route: to get a username, email and password and store it in MongoDB
     login route: to use the username and password values to get an access and a refresh JWT tokens
@@ -8,27 +8,30 @@
     unprotected route: to show a non protected route
     protected rount: to show a protected route. you can access it after login, then after the access token
                      expires you can use the refresh route to get a new one
+    Added several security related techniques.
                      
     As a demo it depends on an unprotected localhost:27017 mongodb
     The .env file sets needed environment variables
     The pyproject.toml file lists prerequisites to be installed by poetry 
 """
+# TODO try flasgger or other documentation generator
+# TODO try switching to gunicorn
 import os
 from datetime import datetime, timedelta
 from functools import wraps
 
 import jwt
-from jwt.exceptions import (
-    ExpiredSignatureError,
-    DecodeError,
-    InvalidTokenError,
-    InvalidSignatureError,
-    InvalidIssuerError,
-)
-
 from flask import Flask, jsonify, request
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
+from jwt.exceptions import (
+    DecodeError,
+    ExpiredSignatureError,
+    InvalidIssuerError,
+    InvalidSignatureError,
+    InvalidTokenError,
+)
+from pydantic import BaseModel, EmailStr, ValidationError, Field
 from pymongo import MongoClient
 
 app = Flask(__name__)
@@ -44,6 +47,21 @@ REFRESH_TOKEN_LIFETIME = os.environ.get("REFRESH_TOKEN_LIFETIME")  # in DAYS
 
 mongo = MongoClient("localhost", 27017)
 db = mongo["py_api"]  # py_api is the name of the db
+
+
+class SignupModel(BaseModel):
+    """pydantic model for user registration"""
+
+    email: EmailStr
+    username: str = Field(..., max_length=30)  # ... means field is required
+    password: str = Field(..., max_length=30)
+
+
+class LoginModel(BaseModel):
+    """pydantic model for login"""
+
+    email: EmailStr
+    password: str = Field(..., max_length=30)
 
 
 def tokenreq(funct):
@@ -100,47 +118,52 @@ def tokenreq(funct):
 
 @app.route("/signup", methods=["POST"])
 def save_user():
-    """will save the username, email, password and timestamp in mongodb"""
+    """Will save the username, email, password, and timestamp in MongoDB."""
     message = ""
     code = 500
     status = "fail"
+
     try:
-        data = request.get_json()
-        if "email" in data and "username" in data and "password" in data:
-            count = db["users"].count_documents({"email": str(data["email"])})
-            if count >= 1:
-                message = "user with that email exists"
-                code = 401
-                status = "fail"
-            else:
-                # hashing the password so it's not stored in the db as it was
-                data["password"] = bcrypt.generate_password_hash(
-                    BCRYPT_PEPPER + data["password"]
-                ).decode("utf-8")
-                data["created"] = datetime.now()
-                newdocument = {
-                    "username": str(data["username"]),
-                    "email": str(data["email"]),
-                    "password": str(data["password"]),
-                    "created_ts": str(data["created"]),
-                }
-                res = db["users"].insert_one(newdocument)
-                if res.acknowledged:
-                    status = "successful"
-                    message = "user created successfully"
-                    code = 201
-                else:
-                    status = "fail"
-                    message = "There was an error inserting data into MongoDB"
-                    code = 400
-        else:
+        # Validate and parse incoming data using Pydantic
+        model = SignupModel.model_validate(request.get_json())
+        data = model.model_dump()
+        count = db["users"].count_documents({"email": data["email"]})
+        if count >= 1:
+            message = "User with that email exists"
+            code = 401
             status = "fail"
-            message = "Please make sure all fields are in the data"
-            code = 400
+        else:
+            hashed_password = bcrypt.generate_password_hash(
+                BCRYPT_PEPPER + data["password"]
+            ).decode("utf-8")
+            created_ts = datetime.now()
+
+            newdocument = {
+                "username": data["username"],
+                "email": data["email"],
+                "password": hashed_password,
+                "created_ts": created_ts,
+            }
+
+            res = db["users"].insert_one(newdocument)
+            if res.acknowledged:
+                status = "successful"
+                message = "User created successfully"
+                code = 201
+            else:
+                status = "fail"
+                message = "There was an error inserting data into MongoDB"
+                code = 400
+
+    except ValidationError as exception:
+        message = str(exception)
+        status = "fail"
+        code = 400
     except Exception as exception:
-        message = f"{exception}"
+        message = str(exception)
         status = "fail"
         code = 500
+
     return jsonify({"status": status, "message": message}), code
 
 
@@ -155,8 +178,9 @@ def login():
     code = 500
     status = "fail"
     try:
-        data = request.get_json()
-        user = db["users"].find_one({"email": f'{data["email"]}'})
+        model = LoginModel.model_validate(request.get_json())
+        data = model.model_dump()
+        user = db["users"].find_one({"email": f"{data['email']}"})
 
         if user:
             user["_id"] = str(user["_id"])
@@ -251,8 +275,8 @@ def refresh_token():
     except jwt.InvalidTokenError:
         message = "Invalid token"
         code = 401
-    except Exception as e:
-        message = f"An unexpected error occurred: {str(e)}"
+    except Exception as exception:
+        message = f"An unexpected error occurred: {str(exception)}"
         code = 500
 
     return jsonify({"status": status, "message": message, "data": res_data}), code
