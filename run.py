@@ -1,4 +1,18 @@
-""" tutorial on API / JWT """
+""" tutorial on Flask API / JWT / MongoDB backend
+    started from this: https://github.com/Gimyk/Rest_API_Flask
+    then slowly evolved to show:
+    tokenreq decorator function to secure routes
+    signup route: to get a username, email and password and store it in MongoDB
+    login route: to use the username and password values to get an access and a refresh JWT tokens
+    refresh route: when the short lived access JWT expires, use the refresh token to get a new one
+    unprotected route: to show a non protected route
+    protected rount: to show a protected route. you can access it after login, then after the access token
+                     expires you can use the refresh route to get a new one
+                     
+    As a demo it depends on an unprotected localhost:27017 mongodb
+    The .env file sets needed environment variables
+    The pyproject.toml file lists prerequisites to be installed by poetry 
+"""
 import os
 from datetime import datetime, timedelta
 from functools import wraps
