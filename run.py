@@ -14,7 +14,6 @@
     The .env file sets needed environment variables
     The pyproject.toml file lists prerequisites to be installed by poetry 
 """
-# TODO try flasgger or other documentation generator
 # TODO try switching to gunicorn
 import os
 from datetime import datetime, timedelta
@@ -33,8 +32,11 @@ from jwt.exceptions import (
 )
 from pydantic import BaseModel, EmailStr, ValidationError, Field
 from pymongo import MongoClient
+from flasgger import Swagger
 
 app = Flask(__name__)
+swagger = Swagger(app)  # flasgger
+
 CORS(
     app, resources={r"/*": {"origins": "*"}}
 )  # in production restrict to known domain(s)
@@ -118,7 +120,41 @@ def tokenreq(funct):
 
 @app.route("/signup", methods=["POST"])
 def save_user():
-    """Will save the username, email, password, and timestamp in MongoDB."""
+    """
+    Will save the username, email, password, and timestamp in MongoDB.
+    ---
+    tags:
+      - User management
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            email:
+              type: string
+              description: Unique email address.
+            username:
+              type: string
+              description: Desired username.
+              minLength: 1
+              maxLength: 30
+            password:
+              type: string
+              description: Secure password.
+              minLength: 1
+              maxLength: 30
+    responses:
+      201:
+        description: User successfully created.
+      400:
+        description: Bad request. There was a validation error or a data insertion error.
+      401:
+        description: Unauthorized. User with that email already exists.
+      500:
+        description: Internal Server Error. An unexpected error occurred during signup.
+    """
     message = ""
     code = 500
     status = "fail"
@@ -172,6 +208,31 @@ def login():
     """Check the provided email and password against saved values in MongoDB.
     If they are correct, it will return an access token and a refresh token in the response.
     Also deletes the password from the returned values.
+    ---
+    tags:
+      - JWT management
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            email:
+              type: string
+              description: Unique email address.
+            password:
+              type: string
+              description: Secure password.
+              minLength: 1
+              maxLength: 30
+    responses:
+      200:
+        description: User successfully authenticated. Returns access and refresh tokens.
+      401:
+        description: Unauthorized. Invalid login details or wrong password.
+      500:
+        description: Internal Server Error. An unexpected error occurred during login.
     """
     message = ""
     res_data = {}
@@ -236,7 +297,28 @@ def login():
 
 @app.route("/refresh", methods=["POST"])
 def refresh_token():
-    """Refreshes an expired JWT and returns a new access token"""
+    """Refreshes an expired JWT and returns a new access token.
+    ---
+    tags:
+      - JWT management
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            refresh_token:
+              type: string
+              description: The refresh token issued during successful login.
+    responses:
+      200:
+        description: Access token successfully refreshed.
+      401:
+        description: Unauthorized. Either the refresh token has expired or it's invalid.
+      500:
+        description: Internal Server Error. An unexpected error occurred during token refresh.
+    """
     status = "fail"
     message = ""
     code = 500

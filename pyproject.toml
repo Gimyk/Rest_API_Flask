@@ -20,6 +20,7 @@ flask-bcrypt = "^1.0.1"
 pyjwt = "^2.8.0"
 python-dotenv = "^1.0.0"
 pydantic = { version = "^2.3.0", extras = ["email"] }
+flasgger = "^0.9.7.1"
 
 [build-system]
 requires = ["poetry-core"]
