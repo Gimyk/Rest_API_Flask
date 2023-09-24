@@ -1,18 +1,24 @@
-from flask import Flask, jsonify, request
-from pymongo import MongoClient
-from flask_cors import CORS
-from bson import ObjectId
-import json
-import jwt
+""" tutorial on API / JWT """
+import os
 from datetime import datetime, timedelta
-from flask_bcrypt import Bcrypt
 from functools import wraps
 
+import jwt
+from jwt.exceptions import ExpiredSignatureError, DecodeError, InvalidTokenError
+from bson import ObjectId
+from flask import Flask, jsonify, request
+from flask_bcrypt import Bcrypt
+from flask_cors import CORS
+from pymongo import MongoClient
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(
+    app, resources={r"/*": {"origins": "*"}}
+)  # in production restrict to known domain(s)
 bcrypt = Bcrypt(app)
-secret = "***************"
+
+BCRYPT_PEPPER = os.environ.get("BCRYPT_PEPPER", "FosseMaicheNonCiSia")
+JWT_SECRET = os.environ.get("JWT_SECRET", "LaFavaELaRava...")
 
 mongo = MongoClient("localhost", 27017)
 db = mongo["py_api"]  # py_api is the name of the db
@@ -24,18 +30,41 @@ def tokenReq(f):
         if "Authorization" in request.headers:
             token = request.headers["Authorization"]
             try:
-                jwt.decode(token, secret)
-            except:
-                return jsonify({"status": "fail", "message": "unauthorized"}), 401
+                jwt.decode(
+                    token, JWT_SECRET, algorithms=["HS256"]
+                )  # specify the algorithm used for JWT
+            except ExpiredSignatureError:
+                return jsonify({"status": "fail", "message": "Token has expired"}), 401
+            except DecodeError:
+                return jsonify({"status": "fail", "message": "Token is malformed"}), 401
+            except InvalidTokenError:
+                return jsonify({"status": "fail", "message": "Token is invalid"}), 401
+            except Exception as general_exception:
+                return (
+                    jsonify(
+                        {
+                            "status": "fail",
+                            "message": f"An unexpected error occurred: {str(general_exception)}",
+                        }
+                    ),
+                    401,
+                )
+
             return f(*args, **kwargs)
         else:
-            return jsonify({"status": "fail", "message": "unauthorized"}), 401
+            return (
+                jsonify(
+                    {"status": "fail", "message": "Authorization header is missing"}
+                ),
+                401,
+            )
 
     return decorated
 
 
 @app.route("/")
 def func():
+    """empty route returning a smiley just for fun"""
     return "😺", 200
 
 
@@ -152,28 +181,42 @@ def save_user():
     status = "fail"
     try:
         data = request.get_json()
-        count = db["users"].count_documents({"email": data["email"]})
-        if count >= 1:
-            message = "user with that email exists"
-            code = 401
-            status = "fail"
+        if "email" in data and "username" in data and "password" in data:
+            count = db["users"].count_documents({"email": str(data["email"])})
+            if count >= 1:
+                message = "user with that email exists"
+                code = 401
+                status = "fail"
+            else:
+                # hashing the password so it's not stored in the db as it was
+                data["password"] = bcrypt.generate_password_hash(
+                    BCRYPT_PEPPER + data["password"]
+                ).decode("utf-8")
+                data["created"] = datetime.now()
+                newdocument = {
+                    "username": str(data["username"]),
+                    "email": str(data["email"]),
+                    "password": str(data["password"]),
+                    "created_ts": str(data["created"]),
+                }
+                res = db["users"].insert_one(newdocument)
+                if res.acknowledged:
+                    status = "successful"
+                    message = "user created successfully"
+                    code = 201
+                else:
+                    status = "fail"
+                    message = "There was an error inserting data into MongoDB"
+                    code = 400
         else:
-            # hashing the password so it's not stored in the db as it was
-            data["password"] = bcrypt.generate_password_hash(data["password"]).decode(
-                "utf-8"
-            )
-            data["created"] = datetime.now()
-            # this is bad practice since the data is not being checked before insert
-            res = db["users"].insert_one(data)
-            if res.acknowledged:
-                status = "successful"
-                message = "user created successfully"
-                code = 201
+            status = "fail"
+            message = "Please make sure all fields are in the data"
+            code = 400
     except Exception as ex:
         message = f"{ex}"
         status = "fail"
         code = 500
-    return jsonify({"status": status, "message": message}), 200
+    return jsonify({"status": status, "message": message}), code
 
 
 @app.route("/login", methods=["POST"])
@@ -188,7 +231,9 @@ def login():
 
         if user:
             user["_id"] = str(user["_id"])
-            if user and bcrypt.check_password_hash(user["password"], data["password"]):
+            if user and bcrypt.check_password_hash(
+                user["password"], BCRYPT_PEPPER + data["password"]
+            ):
                 time = datetime.utcnow() + timedelta(hours=24)
                 token = jwt.encode(
                     {
@@ -198,12 +243,12 @@ def login():
                         },
                         "exp": time,
                     },
-                    secret,
+                    JWT_SECRET,
                 )
 
                 del user["password"]
 
-                message = f"user authenticated"
+                message = "user authenticated"
                 code = 200
                 status = "successful"
                 res_data["token"] = token

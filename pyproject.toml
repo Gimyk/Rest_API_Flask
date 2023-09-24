@@ -18,6 +18,7 @@ six = "^1.16.0"
 werkzeug = "^2.3.7"
 flask-bcrypt = "^1.0.1"
 pyjwt = "^2.8.0"
+python-dotenv = "^1.0.0"
 
 
 [build-system]
