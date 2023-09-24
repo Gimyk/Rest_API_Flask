@@ -11,7 +11,7 @@ from jwt.exceptions import (
     InvalidSignatureError,
     InvalidIssuerError,
 )
-from bson import ObjectId
+
 from flask import Flask, jsonify, request
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
@@ -194,6 +194,57 @@ def login():
         code = 500
         status = "fail"
     return jsonify({"status": status, "data": res_data, "message": message}), code
+
+
+@app.route("/refresh", methods=["POST"])
+def refresh_token():
+    """Refreshes an expired JWT and returns a new access token"""
+    status = "fail"
+    message = ""
+    code = 500
+    res_data = {}
+
+    try:
+        # Get the refresh token from the request
+        data = request.get_json()
+        refresh_token = data.get("refresh_token")
+
+        # Decode and validate the refresh token
+        decoded_data = jwt.decode(refresh_token, JWT_SECRET, algorithms=["HS256"])
+
+        # If token is valid, issue a new access token
+        new_expiry = datetime.utcnow() + timedelta(minutes=int(ACCESS_TOKEN_LIFETIME))
+        new_token = jwt.encode(
+            {
+                "user": {
+                    "email": decoded_data["user"]["email"],
+                    "id": decoded_data["user"]["id"],
+                },
+                "exp": new_expiry,
+            },
+            JWT_SECRET,
+            algorithm="HS256",
+        )
+
+        res_data["access_token"] = new_token
+        status = "success"
+        message = "Access token refreshed"
+        code = 200
+
+    except jwt.ExpiredSignatureError:
+        message = "Refresh token has expired"
+        code = 401
+    except jwt.InvalidTokenError:
+        message = "Invalid token"
+        code = 401
+    except Exception as e:
+        message = f"An unexpected error occurred: {str(e)}"
+        code = 500
+
+    return jsonify({"status": status, "message": message, "data": res_data}), code
+
+
+# simple routes to demostrate an unprotected and a protected (by the tokenreq decorator) route
 
 
 @app.route("/")
