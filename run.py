@@ -57,6 +57,7 @@ def tokenreq(funct):
             except InvalidIssuerError:
                 return jsonify({"status": "fail", "message": "Invalid issuer"}), 401
             except DecodeError:
+                print("Failed to decode token:", token)
                 return jsonify({"status": "fail", "message": "Token is malformed"}), 401
             except InvalidTokenError:
                 return jsonify({"status": "fail", "message": "Token is invalid"}), 401
@@ -81,117 +82,6 @@ def tokenreq(funct):
             )
 
     return decorated
-
-
-@app.route("/")
-def func():
-    """empty route returning a smiley just for fun"""
-    return "😺", 200
-
-
-# get all and insert one
-@app.route("/todos", methods=["GET", "POST"])
-def index():
-    res = []
-    code = 500
-    status = "fail"
-    message = ""
-    try:
-        if request.method == "POST":
-            res = db["todos"].insert_one(request.get_json())
-            if res.acknowledged:
-                message = "item saved"
-                status = "successful"
-                code = 201
-                res = {"_id": f"{res.inserted_id}"}
-            else:
-                message = "insert error"
-                res = "fail"
-                code = 500
-        else:
-            for r in db["todos"].find().sort("_id", -1):
-                r["_id"] = str(r["_id"])
-                res.append(r)
-            if res:
-                message = "todos retrieved"
-                status = "successful"
-                code = 200
-            else:
-                message = "no todos found"
-                status = "successful"
-                code = 200
-    except Exception as exception:
-        res = {"error": str(exception)}
-    return jsonify({"status": status, "data": res, "message": message}), code
-
-
-# get one and update one
-@app.route("/delete/<item_id>", methods=["DELETE"])
-@tokenreq
-def delete_one(item_id):
-    data = {}
-    code = 500
-    message = ""
-    status = "fail"
-    try:
-        if request.method == "DELETE":
-            res = db["todos"].delete_one({"_id": ObjectId(item_id)})
-            if res:
-                message = "Delete successfully"
-                status = "successful"
-                code = 201
-            else:
-                message = "Delete failed"
-                status = "fail"
-                code = 404
-        else:
-            message = "Delete Method failed"
-            status = "fail"
-            code = 404
-
-    except Exception as exception:
-        message = str(exception)
-        status = "Error"
-
-    return jsonify({"status": status, "message": message, "data": data}), code
-
-
-# get one and update one
-@app.route("/getone/<item_id>", methods=["GET", "POST"])
-@tokenreq
-def by_id(item_id):
-    data = {}
-    code = 500
-    message = ""
-    status = "fail"
-    try:
-        if request.method == "POST":
-            res = db["todos"].update_one(
-                {"_id": ObjectId(item_id)}, {"$set": request.get_json()}
-            )
-            if res:
-                message = "updated successfully"
-                status = "successful"
-                code = 201
-            else:
-                message = "update failed"
-                status = "fail"
-                code = 404
-        else:
-            data = db["todos"].find_one({"_id": ObjectId(item_id)})
-            data["_id"] = str(data["_id"])
-            if data:
-                message = "item found"
-                status = "successful"
-                code = 200
-            else:
-                message = "update failed"
-                status = "fail"
-                code = 404
-    except Exception as exception:
-        message = str(exception)
-        status = "Error"
-    return jsonify({"status": status, "message": message, "data": data}), code
 
 
 @app.route("/signup", methods=["POST"])
@@ -284,7 +174,6 @@ def login():
                     JWT_SECRET,
                     algorithm="HS256",
                 )
-
                 del user["password"]
                 message = "user authenticated"
                 code = 200
@@ -304,8 +193,20 @@ def login():
         message = f"{exception}"
         code = 500
         status = "fail"
-
     return jsonify({"status": status, "data": res_data, "message": message}), code
+
+
+@app.route("/")
+def func():
+    """unprotected route returning a smiley just for fun"""
+    return "😺", 200
+
+
+@app.route("/protected", methods=["GET"])
+@tokenreq
+def protected_route():
+    """simple protected route"""
+    return jsonify({"message": "You have access to this JWT protected resource."})
 
 
 if __name__ == "__main__":
