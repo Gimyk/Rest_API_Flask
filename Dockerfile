@@ -33,5 +33,3 @@ RUN poetry install --no-interaction
 
 # Copy code
 COPY ./app $APP_PATH/
-s
-
