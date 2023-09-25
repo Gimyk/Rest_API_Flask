@@ -1,3 +1,4 @@
+# pylint: disable=broad-exception-caught
 """ tutorial on Flask API / JWT / MongoDB backend
     started from this: https://github.com/Gimyk/Rest_API_Flask
     then slowly fixed/evolved to show:
@@ -285,7 +286,7 @@ def login():
                 refresh_exp_time = datetime.utcnow() + timedelta(
                     days=int(REFRESH_TOKEN_LIFETIME)
                 )
-                refresh_token = jwt.encode(
+                refresh_token_value = jwt.encode(
                     {
                         "user": {"email": f"{user['email']}", "id": f"{user['_id']}"},
                         "exp": refresh_exp_time,
@@ -298,7 +299,7 @@ def login():
                 code = 200
                 status = "successful"
                 res_data["access_token"] = access_token
-                res_data["refresh_token"] = refresh_token
+                res_data["refresh_token"] = refresh_token_value
                 res_data["user"] = user
             else:
                 message = "wrong password"
@@ -347,10 +348,10 @@ def refresh_token():
     try:
         # Get the refresh token from the request
         data = request.get_json()
-        refresh_token = data.get("refresh_token")
+        refresh_token_value = data.get("refresh_token")
 
         # Decode and validate the refresh token
-        decoded_data = jwt.decode(refresh_token, JWT_SECRET, algorithms=["HS256"])
+        decoded_data = jwt.decode(refresh_token_value, JWT_SECRET, algorithms=["HS256"])
 
         # If token is valid, issue a new access token
         new_expiry = datetime.utcnow() + timedelta(minutes=int(ACCESS_TOKEN_LIFETIME))
