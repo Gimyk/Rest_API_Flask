@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    ports:
+      - "27017:27017"
+
+  flask-jwt:
+    env_file:
+      - .env
+    build:
+      args:
+        PYTHON_VERSION: 3.10.13
+    ports:
+      - "8000:8000"
+    command: ["poetry", "run", "python", "-m", "gunicorn", "-w", "1", "run:app", "-b", "0.0.0.0:8000"]
+    depends_on:
+      - mongodb

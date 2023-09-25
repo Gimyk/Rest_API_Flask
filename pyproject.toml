@@ -6,7 +6,7 @@ authors = ["Robert Alexander <gogonegro@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.10"
 click = "^8.1.7"
 Flask = "^2.3.3"
 Flask-Cors = "^4.0.0"
@@ -21,6 +21,8 @@ pyjwt = "^2.8.0"
 python-dotenv = "^1.0.0"
 pydantic = { version = "^2.3.0", extras = ["email"] }
 flasgger = "^0.9.7.1"
+jwt = "^1.3.1"
+gunicorn = "^21.2.0"
 
 [build-system]
 requires = ["poetry-core"]

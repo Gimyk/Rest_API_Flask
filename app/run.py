@@ -64,8 +64,9 @@ JWT_SECRET = os.environ.get("JWT_SECRET")
 ACCESS_TOKEN_LIFETIME = os.environ.get("ACCESS_TOKEN_LIFETIME")  # in MINUTES
 REFRESH_TOKEN_LIFETIME = os.environ.get("REFRESH_TOKEN_LIFETIME")  # in DAYS
 
-mongo = MongoClient("localhost", 27017)
-db = mongo["py_api"]  # py_api is the name of the db
+MONGO_URI = os.environ.get("MONGO_URI")
+mongo = MongoClient(MONGO_URI)
+db = mongo["jwt_api"]  # py_api is the name of the db
 
 
 class SignupModel(BaseModel):
