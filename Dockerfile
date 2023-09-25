@@ -33,7 +33,5 @@ RUN poetry install --no-interaction
 
 # Copy code
 COPY ./app $APP_PATH/
-
-# Application entry point
-#CMD ["poetry", "run", "python", "-m", "gunicorn", "-w", "1", "run:app", "-b", "0.0.0.0:8000"]
+s
 
