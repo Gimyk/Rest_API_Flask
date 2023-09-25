@@ -16,6 +16,8 @@
     
     To work under gunicorn install it with pip3 but within the poetry shell enviroment
     To check issue a 'which gunicorn' and you should see it's in the .venv
+    In a docker it's poetry run python -m gunicorn that will work hence the gunicorn library
+        and not the apt installed binary
     To run it under the VSCode debugger you need a launch.json such as:
     {
     "version": "0.2.0",
