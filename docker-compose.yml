@@ -12,9 +12,11 @@ services:
       retries: 3
     volumes:
       - mongodb_data:/data/db
+    networks:
+      - internal_network
 
   flask-jwt:
-    image: flask-jwt
+    image: flask-jwt:v0.4
     env_file:
       - .env
     build:
